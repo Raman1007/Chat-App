@@ -42,6 +42,7 @@ const Bottom = () => {
     try {
       await database.ref().update(updates);
       seInput('');
+      setIsLoading(false);
     } catch (err) {
       setIsLoading(false);
       Alert.error(err.message, 4000);
