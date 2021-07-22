@@ -48,7 +48,7 @@ const Bottom = () => {
       setIsLoading(false);
     } catch (err) {
       setIsLoading(false);
-      Alert.error(err.message, 4000);
+      Alert.error(err.message);
     }
   };
   const onKeyDown = ev => {
@@ -65,7 +65,7 @@ const Bottom = () => {
         const msgData = assembleMessage(profile, chatId);
         msgData.file = file;
         const messageId = database.ref('messages').push().key;
-        updates[`/messages.${messageId}`] = msgData;
+        updates[`/messages/${messageId}`] = msgData;
       });
       const lastMsgId = Object.keys(updates).pop();
       updates[`/rooms/${chatId}/lastMessage`] = {
