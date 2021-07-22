@@ -21,12 +21,12 @@ function assembleMessage(profile, chatId) {
 }
 
 const Bottom = () => {
-  const [input, seInput] = useState('');
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { chatId } = useParams();
   const { profile } = useProfile();
   const onInputChange = useCallback(value => {
-    seInput(value);
+    setInput(value);
   }, []);
   const onSendClick = async () => {
     if (input.trim() === '') {
@@ -44,7 +44,7 @@ const Bottom = () => {
     setIsLoading(true);
     try {
       await database.ref().update(updates);
-      seInput('');
+      setInput('');
       setIsLoading(false);
     } catch (err) {
       setIsLoading(false);
@@ -57,10 +57,36 @@ const Bottom = () => {
       onSendClick();
     }
   };
+  const afterUpload = useCallback(
+    async files => {
+      setIsLoading(true);
+      const updates = {};
+      files.forEach(file => {
+        const msgData = assembleMessage(profile, chatId);
+        msgData.file = file;
+        const messageId = database.ref('messages').push().key;
+        updates[`/messages.${messageId}`] = msgData;
+      });
+      const lastMsgId = Object.keys(updates).pop();
+      updates[`/rooms/${chatId}/lastMessage`] = {
+        ...updates[lastMsgId],
+        msgId: lastMsgId,
+      };
+      try {
+        await database.ref().update(updates);
+        setInput('');
+        setIsLoading(false);
+      } catch (err) {
+        setIsLoading(false);
+        Alert.error(err.message);
+      }
+    },
+    [chatId, profile]
+  );
   return (
     <div>
       <InputGroup>
-        <AttachmentBtnModal />
+        <AttachmentBtnModal afterUpload={afterUpload} />
         <Input
           placeholder="Write a new message here..."
           value={input}
