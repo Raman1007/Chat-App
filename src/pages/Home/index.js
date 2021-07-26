@@ -1,15 +1,17 @@
 import React from 'react';
-import { Route, Switch, useRouteMatch } from 'react-router';
-import { Col, Grid, Row } from 'rsuite';
+import { Grid, Row, Col } from 'rsuite';
+import { Switch, Route, useRouteMatch } from 'react-router';
 import Sidebar from '../../components/Sidebar';
 import { RoomsProvider } from '../../context/rooms.context';
-import { useMediaQuery } from '../../misc/custom-hooks';
 import Chat from './Chat';
+import { useMediaQuery } from '../../misc/custom-hooks';
 
 const Home = () => {
-  const isDesktop = useMediaQuery('(min-width:992px)');
+  const isDesktop = useMediaQuery('(min-width: 992px)');
   const { isExact } = useRouteMatch();
+
   const canRenderSidebar = isDesktop || isExact;
+
   return (
     <RoomsProvider>
       <Grid fluid className="h-100">

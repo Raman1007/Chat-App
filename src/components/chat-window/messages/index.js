@@ -1,13 +1,12 @@
 /* eslint-disable consistent-return */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router';
 import { Alert, Button } from 'rsuite';
-import { auth, database, storage } from '../../../misc/firebase';
-import { groupBy, transformToArrWithId } from '../../../misc/helpers';
+import { database, auth, storage } from '../../../misc/firebase';
+import { transformToArrWithId, groupBy } from '../../../misc/helpers';
 import MessageItem from './MessageItem';
 
 const PAGE_SIZE = 15;
-
 const messagesRef = database.ref('/messages');
 
 function shouldScrollToBottom(node, threshold = 30) {
@@ -19,11 +18,8 @@ function shouldScrollToBottom(node, threshold = 30) {
 
 const Messages = () => {
   const { chatId } = useParams();
-
   const [messages, setMessages] = useState(null);
-
   const [limit, setLimit] = useState(PAGE_SIZE);
-
   const selfRef = useRef();
 
   const isChatEmpty = messages && messages.length === 0;
@@ -32,6 +28,7 @@ const Messages = () => {
   const loadMessages = useCallback(
     limitToLast => {
       const node = selfRef.current;
+
       messagesRef.off();
 
       messagesRef
@@ -40,7 +37,6 @@ const Messages = () => {
         .limitToLast(limitToLast || PAGE_SIZE)
         .on('value', snap => {
           const data = transformToArrWithId(snap.val());
-
           setMessages(data);
 
           if (shouldScrollToBottom(node)) {
@@ -72,7 +68,7 @@ const Messages = () => {
 
     setTimeout(() => {
       node.scrollTop = node.scrollHeight;
-    }, 500);
+    }, 200);
 
     return () => {
       messagesRef.off('value');
@@ -95,6 +91,7 @@ const Messages = () => {
             alertMsg = 'Admin permission granted';
           }
         }
+
         return admins;
       });
 
@@ -126,6 +123,7 @@ const Messages = () => {
           alertMsg = 'Like added';
         }
       }
+
       return msg;
     });
 
@@ -158,6 +156,7 @@ const Messages = () => {
 
       try {
         await database.ref().update(updates);
+
         Alert.info('Message has been deleted');
       } catch (err) {
         return Alert.error(err.message);
@@ -198,8 +197,10 @@ const Messages = () => {
           handleDelete={handleDelete}
         />
       ));
+
       items.push(...msgs);
     });
+
     return items;
   };
 

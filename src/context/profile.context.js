@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+/* eslint-disable no-console */
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import firebase from 'firebase/app';
-import { auth, database } from '../misc/firebase';
+import { auth, database, fcmVapidKey, messaging } from '../misc/firebase';
+import { isLocalhost } from '../misc/helpers';
 
 export const isOfflineForDatabase = {
   state: 'offline',
@@ -17,13 +19,17 @@ const ProfileContext = createContext();
 export const ProfileProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     let userRef;
     let userStatusRef;
-    const authUnsub = auth.onAuthStateChanged(authObj => {
+    let tokenRefreshUnsub;
+
+    const authUnsub = auth.onAuthStateChanged(async authObj => {
       if (authObj) {
         userStatusRef = database.ref(`/status/${authObj.uid}`);
         userRef = database.ref(`/profiles/${authObj.uid}`);
+
         userRef.on('value', snap => {
           const { name, createdAt, avatar } = snap.val();
 
@@ -34,6 +40,7 @@ export const ProfileProvider = ({ children }) => {
             uid: authObj.uid,
             email: authObj.email,
           };
+
           setProfile(data);
           setIsLoading(false);
         });
@@ -42,6 +49,7 @@ export const ProfileProvider = ({ children }) => {
           if (!!snapshot.val() === false) {
             return;
           }
+
           userStatusRef
             .onDisconnect()
             .set(isOfflineForDatabase)
@@ -49,24 +57,76 @@ export const ProfileProvider = ({ children }) => {
               userStatusRef.set(isOnlineForDatabase);
             });
         });
+
+        if (messaging) {
+          try {
+            let swRegistration;
+            if (isLocalhost) {
+              await navigator.serviceWorker
+                .register(`${process.env.PUBLIC_URL}/firebase-messaging-sw.js`)
+                .then(registration => {
+                  swRegistration = registration;
+                });
+            }
+            const currentToken = await messaging.getToken({
+              vapidKey: fcmVapidKey,
+              serviceWorkerRegistration: swRegistration,
+            });
+            if (currentToken) {
+              await database
+                .ref(`/fcm_tokens/${currentToken}`)
+                .set(authObj.uid);
+            }
+          } catch (err) {
+            console.log('An error occurred while retrieving token. ', err);
+          }
+
+          tokenRefreshUnsub = messaging.onTokenRefresh(async () => {
+            try {
+              const currentToken = await messaging.getToken();
+              if (currentToken) {
+                await database
+                  .ref(`/fcm_tokens/${currentToken}`)
+                  .set(authObj.uid);
+              }
+            } catch (err) {
+              console.log('An error occurred while retrieving token. ', err);
+            }
+          });
+        }
       } else {
         if (userRef) {
           userRef.off();
         }
+
         if (userStatusRef) {
           userStatusRef.off();
         }
+
+        if (tokenRefreshUnsub) {
+          tokenRefreshUnsub();
+        }
+
         database.ref('.info/connected').off();
+
         setProfile(null);
         setIsLoading(false);
       }
     });
+
     return () => {
       authUnsub();
+
       database.ref('.info/connected').off();
+
       if (userRef) {
         userRef.off();
       }
+
+      if (tokenRefreshUnsub) {
+        tokenRefreshUnsub();
+      }
+
       if (userStatusRef) {
         userStatusRef.off();
       }
@@ -79,4 +139,5 @@ export const ProfileProvider = ({ children }) => {
     </ProfileContext.Provider>
   );
 };
+
 export const useProfile = () => useContext(ProfileContext);

@@ -1,14 +1,14 @@
-import React from 'react';
-import { Button } from 'rsuite';
+import React, { memo } from 'react';
 import TimeAgo from 'timeago-react';
-import { useCurrentRoom } from '../../../context/current-room.context';
-import { useHover, useMediaQuery } from '../../../misc/custom-hooks';
-import { auth } from '../../../misc/firebase';
-import PresenceDot from '../../PresenceDot';
+import { Button } from 'rsuite';
 import ProfileAvatar from '../../ProfileAvatar';
+import ProfileInfoBtnModal from './ProfileInfoBtnModal';
+import PresenceDot from '../../PresenceDot';
+import { useCurrentRoom } from '../../../context/current-room.context';
+import { auth } from '../../../misc/firebase';
+import { useHover, useMediaQuery } from '../../../misc/custom-hooks';
 import IconBtnControl from './IconBtnControl';
 import ImgBtnModal from './ImgBtnModal';
-import ProfileInfoBtnModal from './ProfileInfoBtnModal';
 
 const renderFileMessage = file => {
   if (file.contentType.includes('image')) {
@@ -18,6 +18,7 @@ const renderFileMessage = file => {
       </div>
     );
   }
+
   if (file.contentType.includes('audio')) {
     return (
       // eslint-disable-next-line jsx-a11y/media-has-caption
@@ -27,18 +28,23 @@ const renderFileMessage = file => {
       </audio>
     );
   }
+
   return <a href={file.url}>Download {file.name}</a>;
 };
 
 const MessageItem = ({ message, handleAdmin, handleLike, handleDelete }) => {
   const { author, createdAt, text, file, likes, likeCount } = message;
+
   const [selfRef, isHovered] = useHover();
+  const isMobile = useMediaQuery('(max-width: 992px)');
+
   const isAdmin = useCurrentRoom(v => v.isAdmin);
   const admins = useCurrentRoom(v => v.admins);
-  const isMobile = useMediaQuery('(max-width:992px)');
+
   const isMsgAuthorAdmin = admins.includes(author.uid);
   const isAuthor = auth.currentUser.uid === author.uid;
   const canGrantAdmin = isAdmin && !isAuthor;
+
   const canShowIcons = isMobile || isHovered;
   const isLiked = likes && Object.keys(likes).includes(auth.currentUser.uid);
 
@@ -49,12 +55,14 @@ const MessageItem = ({ message, handleAdmin, handleLike, handleDelete }) => {
     >
       <div className="d-flex align-items-center font-bolder mb-1">
         <PresenceDot uid={author.uid} />
+
         <ProfileAvatar
           src={author.avatar}
           name={author.name}
           className="ml-1"
           size="xs"
         />
+
         <ProfileInfoBtnModal
           profile={author}
           appearance="link"
@@ -72,6 +80,7 @@ const MessageItem = ({ message, handleAdmin, handleLike, handleDelete }) => {
           datetime={createdAt}
           className="font-normal text-black-45 ml-2"
         />
+
         <IconBtnControl
           {...(isLiked ? { color: 'red' } : {})}
           isVisible={canShowIcons}
@@ -82,7 +91,6 @@ const MessageItem = ({ message, handleAdmin, handleLike, handleDelete }) => {
         />
         {isAuthor && (
           <IconBtnControl
-            {...(isLiked ? { color: 'red' } : {})}
             isVisible={canShowIcons}
             iconName="close"
             tooltip="Delete this message"
@@ -90,6 +98,7 @@ const MessageItem = ({ message, handleAdmin, handleLike, handleDelete }) => {
           />
         )}
       </div>
+
       <div>
         {text && <span className="word-breal-all">{text}</span>}
         {file && renderFileMessage(file)}
@@ -98,4 +107,4 @@ const MessageItem = ({ message, handleAdmin, handleLike, handleDelete }) => {
   );
 };
 
-export default MessageItem;
+export default memo(MessageItem);
