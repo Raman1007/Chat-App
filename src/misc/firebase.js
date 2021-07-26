@@ -1,9 +1,12 @@
 /* eslint-disable no-undef */
+import { Notification as Toast } from 'rsuite';
 import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/database';
 import 'firebase/storage';
+import 'firebase/functions';
 import 'firebase/messaging';
+import { isLocalhost } from './helpers';
 
 const config = {
   apiKey: 'AIzaSyCWZUswV65zMTNNTmiTXg3P3smtw6xVHIg',
@@ -19,6 +22,7 @@ const app = firebase.initializeApp(config);
 export const auth = app.auth();
 export const database = app.database();
 export const storage = app.storage();
+export const functions = app.functions('us-central1');
 export const fcmVapidKey =
   'BJM6T3Whfqnd83t0BzHxSqW9FuYU3Hsp7RcxH6Csjw6yynqFXCwM2m69vIamSa1omdD4nm9yiL_68jElqWwQh_U';
 
@@ -31,8 +35,12 @@ if (messaging) {
     'BJM6T3Whfqnd83t0BzHxSqW9FuYU3Hsp7RcxH6Csjw6yynqFXCwM2m69vIamSa1omdD4nm9yiL_68jElqWwQh_U'
   );
 
-  messaging.onMessage(data => {
-    // eslint-disable-next-line no-console
-    console.log(data);
+  messaging.onMessage(({ notification }) => {
+    const { title, body } = notification;
+    Toast.info({ title, description: body, duration: 0 });
   });
+}
+
+if (isLocalhost) {
+  functions.useEmulator('localhost', 5001);
 }
